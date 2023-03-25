@@ -1,10 +1,10 @@
-from flask import Flask
+from flask import Flask, render_template, redirect, request
 from pymongo import MongoClient
 
 import emoji
 import random
 app = Flask("fluffy-chainsaw")
-database = MongoClient("mongo")
+database = MongoClient("mongo")["fluffy-chainsaw"]
 @app.route("/")
 def main_page():
 	return "main page"
@@ -13,15 +13,18 @@ def main_page():
 def url():
 	# Creates the token
 	all_emoji = list(emoji.EMOJI_DATA.keys())
-	XSRF_LENGTH = 42069
+	XSRF_LENGTH = 69
 	emoji_token = random.choices(all_emoji, k=XSRF_LENGTH)
+	print(emoji_token)
+	emoji_token = "".join(emoji_token)
+	print(emoji_token)
 	# Save it to database
 	xsrf_table = database["xsrf"]
 	xsrf_table.insert_one({"token": emoji_token})
 	# servers the forms
-	return render_template("url/index.html", token=emoji_token)
+	return render_template("index.html", token=emoji_token)
 
-@app.route("/post_route", method=["POST"])
+@app.route("/post_route", methods=["POST"])
 def storeURL():
 
 	forum = request.form
@@ -29,10 +32,13 @@ def storeURL():
 	# Checks if the xrfs is in the database
 	xsrf_token = forum.get("XSRF", "")
 	xsrf_table = database["xsrf"]
+	print("xsrf_token")
 	search_result = xsrf_table.find_one({"token": xsrf_token})
+	print("Search result")
+	print(search_result)
 	if search_result == None:
 		# If it does not exist then return nothing
-		return ""
+		return redirect("/404")
 	# Stores it into the path
 	url_table = database["url"]
 	transform_url = forum.get("transform_url", "")
@@ -45,14 +51,14 @@ def storeURL():
 	duplicate_result = url_table.find_one(duplicate_query)
 
 	if duplicate_result != None:
-		return ""
+		return redirect("/404")
 
 	insert_data = {"orignal": orignal_url, "transform": transform_url}
 
 	url_table.insert_one(insert_data)
-	return
+	return redirect("/url")
 
-	@app.route("url/<transform>")
+	@app.route("/url/<transform>")
 	def customRoute(transform):
 		search_query = {"transform": transform}
 
@@ -62,7 +68,10 @@ def storeURL():
 
 		# If the result does not exist exit
 		if result == None:
-			return ""
+			return redirect("/404")
 		
-
-		return ""
+		redirect_url = result["orignal"]
+		return redirect(redirect_url, code=302)
+	@app.route("/404")
+	def route404():
+		return "404 Error"
