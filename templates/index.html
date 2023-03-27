@@ -1,10 +1,13 @@
 <div>
+	<h1>Make sure to include https:// in the url link or else it won't work</h1>
 	<form action="/post_route" method="POST">
 		<input type="text" name="XSRF" value={{ token }} hidden>
 		<label for="url_label">URL:</label>
 		<input type="text" name="orignal_url">
 		<label for="transform_label">New URL:</label>
 		<input type="text" name="transform_url">
+		<label for="timer_label">Timer(m):</label>
+		<input type="text" name="time" value="50">
 		<input type="submit" name="submit_bnt" value="Submit">
 	</form>
 <div>

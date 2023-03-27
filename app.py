@@ -1,5 +1,7 @@
 from flask import Flask, render_template, redirect, request
 from pymongo import MongoClient
+from datetime import datetime, timedelta
+import pytz
 
 import emoji
 import random
@@ -44,6 +46,14 @@ def storeURL():
 	transform_url = forum.get("transform_url", "")
 	orignal_url = forum.get("orignal_url", "")
 
+	# Get the time
+	limited_time = forum.get("time", "50")
+	limited_time = int(limited_time)
+	added_time = timedelta(minutes=limited_time)
+	current_time = datetime.now()
+
+	# expected to end
+	expected_end = 	current_time + added_time
 
 	# Checks for duplicate
 	duplicate_query = {"transform": transform_url}
@@ -51,27 +61,38 @@ def storeURL():
 	duplicate_result = url_table.find_one(duplicate_query)
 
 	if duplicate_result != None:
+		print(duplicate_result)
 		return redirect("/404")
 
-	insert_data = {"orignal": orignal_url, "transform": transform_url}
+	insert_data = {"orignal": orignal_url, "transform": transform_url, "time": expected_end}
 
 	url_table.insert_one(insert_data)
 	return redirect("/url")
 
-	@app.route("/url/<transform>")
-	def customRoute(transform):
-		search_query = {"transform": transform}
+@app.route("/url/<transform>")
+def customRoute(transform):
+	search_query = {"transform": transform}
 
-		url_table = database["url"]
+	url_table = database["url"]
 
-		result = url_table.find_one(search_query)
+	result = url_table.find_one(search_query)
 
-		# If the result does not exist exit
-		if result == None:
-			return redirect("/404")
-		
+	# If the result does not exist exit
+	if result == None:
+		return redirect("/404")
+
+
+	# Grab current time
+	#NY = pytz.timezone("America/New_York")
+	current_time = datetime.now()
+	expected_time = result["time"]
+	print(current_time)
+	print(expected_time)
+	if current_time > expected_time:
+		return redirect("/404")
+	else:
 		redirect_url = result["orignal"]
 		return redirect(redirect_url, code=302)
-	@app.route("/404")
-	def route404():
-		return "404 Error"
+@app.route("/404")
+def route404():
+	return "404 Error"
