@@ -1,2 +1,2 @@
 # fluffy-chainsaw
-urlshorter
+flask timed url shortener
